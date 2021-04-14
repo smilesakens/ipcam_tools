@@ -1,0 +1,46 @@
+# Random notes of the POST body and Returns for various RPC methods...
+
+# METHOD:
+{"method":"mediaFileFind.factory.create","params":null,"id":269,"session":"3f7f06f003f0ecdd4b31d7a872b542fc"}: 
+
+# RETURN:
+{"id":269,"result":2119450816,"session":"3f7f06f003f0ecdd4b31d7a872b542fc"}
+
+# PARAMETERS FORMAT:
+params={
+    "condition":{
+        "Channel":0,
+        "Dirs":[
+                "/mnt/sd"
+               ],
+        "Types":["dav"],
+        "Order":"Ascent",
+        "Redundant":"Exclusion",
+        "Events": "null",
+        "StartTime":"2021-04-14 00:00:00",
+        "EndTime":"2021-04-14 23:59:59",
+        "Flags":["Timing","Event","Event","Manual"]
+        }
+        }
+
+# METHOD:
+{"method":"mediaFileFind.findFile","params":{"condition":{"Channel":0,"Dirs":["/mnt/sd"],"Types":["dav"],"Order":"Ascent","Redundant":"Exclusion","Events":null,"StartTime":"2021-04-14 00:00:00","EndTime":"2021-04-14 23:59:59","Flags":["Timing","Event","Event","Manual"]}},"id":271,"session":"3f7f06f003f0ecdd4b31d7a872b542fc","object":2119450816}:
+
+# RETURN:
+{"id":271,"result":true,"session":"3f7f06f003f0ecdd4b31d7a872b542fc"}
+
+
+# METHOD:
+{"method":"mediaFileFind.findNextFile","params":{"count":13},"id":272,"session":"3f7f06f003f0ecdd4b31d7a872b542fc","object":2119450816}:
+
+# RETURN:
+{"id":272,"params":{"found":13,"infos":[{"Channel":0,"Cluster":0,"Compressed":false,"CutLength":13276998,"Disk":0,"Duration":52,"EndTime":"2021-04-14 07:02:47","Events":["VideoMotion"],"FilePath":"\/mnt\/sd\/2021-04-14\/001\/dav\/07\/07.01.55-07.02.47[M][0@0][0].dav","Flags":["Event"],"Length":13276998,"Overwrites":0,"Partition":0,"PicIndex":0,"Redundant":false,"Repeat":0,"StartTime":"2021-04-14 07:01:55","Summary":{"T
+<-- >8 SNIP 8< -->
+
+# Download DAV file from cam (HTTP GET)
+http://{IP_ADDR}/RPC_Loadfile/mnt/sd/2021-04-10/001/dav/06/06.49.37-06.50.30[M][0@0][0].dav
+
+
+# METHOD:
+{"method":"mediaFileFind.destroy","params":null,"id":292,"session":"219a578acc55c00beaadec2400c8f191","object":2111555248}:
+
