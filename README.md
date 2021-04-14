@@ -1,5 +1,7 @@
 # Overview
-This is a poc tool for querying metadata from the media storage on Dahua IP Cameras
+This is a poc tool for querying metadata from the media storage on Dahua IP Cameras.
+Included in this repo is a static copy of Dahua RPC wrapper:
+https://gist.github.com/gxfxyz/48072a72be3a169bc43549e676713201
 
 # Installation
 ```
