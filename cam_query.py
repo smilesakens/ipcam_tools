@@ -1,12 +1,16 @@
 import os
 import sys
+import json
+import time
 import pprint
 import shutil
 import getpass
 import datetime
+import requests
 import configparser
 
 import dahua_rpc
+
 
 CHUNK_SZ = 1000
 PARAMS = {
@@ -24,6 +28,7 @@ PARAMS = {
                         'Flags': ['Timing', 'Event', 'Event', 'Manual']
                         }
           }
+
 
 def get_cam_config(config_path):
     config = configparser.ConfigParser()
@@ -79,14 +84,14 @@ def get_media_metadata(ipcam, params, query_chunk_size=CHUNK_SZ):
         pprint.pprint(result)
         sys.exit(1)
 
-    yield result
+    yield result, token
 
     while found == query_chunk_size:
         result = ipcam.request('mediaFileFind.findNextFile', params={"count":query_chunk_size}, object_id=token)
         found = result.get('params', {}).get('found', 0)
         print('[**] Found: {}'.format(found))
 
-        yield result
+        yield result, token
 
 
 def list_media_files(media_metadata_chunk):
@@ -105,6 +110,7 @@ def save_media_files(ipcam, media_metadata_chunk, output_path):
         print('[!!] Result was malformed...')
         pprint.pprint(media_metadata_chunk)
         return
+    session = requests.Session()
     for media_file in media_metadata_chunk['params']['infos']:
         cam_media_path = media_file.get('FilePath')
         file_ext = media_file.get('Type')
@@ -120,17 +126,21 @@ def save_media_files(ipcam, media_metadata_chunk, output_path):
         else:
             print('[!!] Unknown media type: {}'.format(file_ext))
         output_fpath = os.path.join(output_path, output_fpath)
-        download_cam_media(ipcam, cam_media_path, output_fpath)
+        download_cam_media(session, ipcam, cam_media_path, output_fpath)
 
 
-def download_cam_media(ipcam, cam_media_path, output_fpath):
+def download_cam_media(session, ipcam, cam_media_path, output_fpath):
     # Example of how to use the ipcam requests session to get one of the file paths returned from get_media_metadata()
-    headers = {'Cookie': 'secure; username={}; DhWebClientSessionID={}'.format(ipcam.username, ipcam.session_id)}
-    result = ipcam.s.get('http://{}/RPC_Loadfile{}'.format(ipcam.host, cam_media_path),
-                         headers=headers,
-                         stream=True)
+    headers = {
+               'Cookie': 'secure; username={}; DhWebClientSessionID={}'.format(ipcam.username, ipcam.session_id)
+              }
+    # Camera will close the connection if connections come in too rapidly
+    time.sleep(1)
+    resp = session.get('http://{}/RPC_Loadfile{}'.format(ipcam.host, cam_media_path),
+                headers=headers,
+                stream=True)
     with open(output_fpath, 'wb') as f:
-        shutil.copyfileobj(result.raw, f)
+        shutil.copyfileobj(resp.raw, f)
         print('[++] Saved: {}'.format(output_fpath))
 
 
@@ -181,11 +191,13 @@ if __name__ == '__main__':
     event_time, start_time, end_time = get_time_window(target_time, args.delta)
     PARAMS['condition']['StartTime'] = start_time.strftime('%Y-%m-%d %H:%M:%S')
     PARAMS['condition']['EndTime'] = end_time.strftime('%Y-%m-%d %H:%M:%S')
-    for media_metadata_chunk in get_media_metadata(ipcam, PARAMS):
+    for media_metadata_chunk, token in get_media_metadata(ipcam, PARAMS):
         if args.list:
             list_media_files(media_metadata_chunk)
         if args.dump:
             pprint.pprint(media_metadata_chunk)
         if args.output_path:
             save_media_files(ipcam, media_metadata_chunk, args.output_path)
+    resp = ipcam.request('mediaFileFind.destroy', object_id=token)
+    resp = ipcam.request('global.logout')
 
