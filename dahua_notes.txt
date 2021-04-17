@@ -44,3 +44,9 @@ http://{IP_ADDR}/RPC_Loadfile/mnt/sd/2021-04-10/001/dav/06/06.49.37-06.50.30[M][
 # METHOD:
 {"method":"mediaFileFind.destroy","params":null,"id":292,"session":"219a578acc55c00beaadec2400c8f191","object":2111555248}:
 
+# METHOD:
+{"method":"global.logout","params":null,"id":438,"session":"7532106c0e2f38c4c005ee446f6f2f05"}:
+
+# RETURN:
+{"id":438,"result":true,"session":"7532106c0e2f38c4c005ee446f6f2f05"}
+
