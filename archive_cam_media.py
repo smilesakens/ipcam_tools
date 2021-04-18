@@ -59,6 +59,9 @@ if __name__ == '__main__':
     if not results == []:
         for full_cap in [start_time.strftime('%Y-%m-%d_%H%M%S-full.mp4'), end_time.strftime('%Y-%m-%d_%H%M%S-full.mp4')]:
             full_cap_path = os.path.join(args.full_cap_path, full_cap)
+            if not os.path.isfile(full_cap_path):
+                print('[!!] Skipping (file not found) {} ...'.format(full_cap_path))
+                continue
             shutil.copy(full_cap_path, args.output_path)
 
 
