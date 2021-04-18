@@ -1,3 +1,4 @@
 __pycache__/
-cam.config
 *.pyc
+*.jpg
+*.dav

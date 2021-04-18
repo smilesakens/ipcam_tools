@@ -105,43 +105,69 @@ def list_media_files(media_metadata_chunk):
         print('Duration: {} / Size: {}'.format(media_file.get('Duration'), media_file.get('Length')))
 
 
-def save_media_files(ipcam, media_metadata_chunk, output_path):
-    if not media_metadata_chunk.get('params', {}).get('infos'):
-        print('[!!] Result was malformed...')
-        pprint.pprint(media_metadata_chunk)
-        return
+def test_output_fpath_exists(output_fpath, file_size):
+    # If there is not a file object with the name FAIL
+    if not os.path.isfile(output_fpath):
+        return False
+    # If the file does not match expected size FAIL
+    if not os.path.getsize(output_fpath) == file_size:
+        return False
+
+    return True
+
+
+def save_media_files(ipcam, media_file, output_path):
     session = requests.Session()
-    for media_file in media_metadata_chunk['params']['infos']:
-        cam_media_path = media_file.get('FilePath')
-        file_ext = media_file.get('Type')
-        start_time = datetime.datetime.fromisoformat(media_file.get('StartTime'))
-        date = start_time.strftime('%Y-%m-%d')
-        start_time = start_time.strftime('%H%M%S')
-        end_time = datetime.datetime.fromisoformat(media_file.get('EndTime'))
-        end_time = end_time.strftime('%H%M%S')
-        if file_ext == 'dav':
-            output_fpath = '{}_{}-{}.{}'.format(date, start_time, end_time, file_ext)
-        elif file_ext == 'jpg':
-            output_fpath = '{}_{}.{}'.format(date, start_time, file_ext)
-        else:
-            print('[!!] Unknown media type: {}'.format(file_ext))
-        output_fpath = os.path.join(output_path, output_fpath)
-        download_cam_media(session, ipcam, cam_media_path, output_fpath)
+    media_bytez = None
+
+    cam_media_path = media_file.get('FilePath')
+    file_ext = media_file.get('Type')
+    file_size = media_file.get('Length')
+    start_time = datetime.datetime.fromisoformat(media_file.get('StartTime'))
+    date = start_time.strftime('%Y-%m-%d')
+    start_time = start_time.strftime('%H%M%S')
+    end_time = datetime.datetime.fromisoformat(media_file.get('EndTime'))
+    end_time = end_time.strftime('%H%M%S')
+    if file_ext == 'dav':
+        output_fpath = '{}_{}-{}.{}'.format(date, start_time, end_time, file_ext)
+    elif file_ext == 'jpg':
+        output_fpath = '{}_{}.{}'.format(date, start_time, file_ext)
+    else:
+        print('[!!] Unknown media type: {}'.format(file_ext))
+    output_fpath = os.path.join(output_path, output_fpath)
+    if not test_output_fpath_exists(output_fpath, file_size):
+        media_bytez = download_cam_media(session, ipcam, cam_media_path)
+    else:
+            print('[**] Skipping (already exists): {}'.format(output_fpath))
+
+    return output_fpath, media_bytez
 
 
-def download_cam_media(session, ipcam, cam_media_path, output_fpath):
+def download_cam_media(session, ipcam, cam_media_path):
     # Example of how to use the ipcam requests session to get one of the file paths returned from get_media_metadata()
     headers = {
                'Cookie': 'secure; username={}; DhWebClientSessionID={}'.format(ipcam.username, ipcam.session_id)
               }
     # Camera will close the connection if connections come in too rapidly
+    # We also want to fire a keepAlive so we keep the session key from timing out
     time.sleep(1)
+    ipcam.current_time()
+    ipcam.request('global.keepAlive', params={'timeout': '300', 'active':'false'})
+
     resp = session.get('http://{}/RPC_Loadfile{}'.format(ipcam.host, cam_media_path),
                 headers=headers,
                 stream=True)
-    with open(output_fpath, 'wb') as f:
-        shutil.copyfileobj(resp.raw, f)
-        print('[++] Saved: {}'.format(output_fpath))
+
+    media_bytez = resp.raw
+
+    return media_bytez
+
+
+def copy_file_obj(output_fpath, media_bytez):
+    if output_fpath and media_bytez:
+        with open(output_fpath, 'wb') as f:
+            shutil.copyfileobj(media_bytez, f)
+            print('[++] Saved: {}'.format(output_fpath))
 
 
 if __name__ == '__main__':
@@ -191,13 +217,20 @@ if __name__ == '__main__':
     event_time, start_time, end_time = get_time_window(target_time, args.delta)
     PARAMS['condition']['StartTime'] = start_time.strftime('%Y-%m-%d %H:%M:%S')
     PARAMS['condition']['EndTime'] = end_time.strftime('%Y-%m-%d %H:%M:%S')
+
+    results = []
     for media_metadata_chunk, token in get_media_metadata(ipcam, PARAMS):
+        if media_metadata_chunk.get('result') == True:
+            for media_item in media_metadata_chunk['params'].get('infos'):
+                results.append(media_item)
         if args.list:
             list_media_files(media_metadata_chunk)
         if args.dump:
             pprint.pprint(media_metadata_chunk)
-        if args.output_path:
-            save_media_files(ipcam, media_metadata_chunk, args.output_path)
     resp = ipcam.request('mediaFileFind.destroy', object_id=token)
+    if args.output_path:
+        for media_file in results:
+            output_fpath, media_bytez = save_media_files(ipcam, media_file, args.output_path)
+            copy_file_obj(output_fpath, media_bytez)
     resp = ipcam.request('global.logout')
 
