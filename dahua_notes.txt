@@ -1,7 +1,7 @@
 # Random notes of the POST body and Returns for various RPC methods...
 
 # METHOD:
-{"method":"mediaFileFind.factory.create","params":null,"id":269,"session":"3f7f06f003f0ecdd4b31d7a872b542fc"}: 
+{"method":"mediaFileFind.factory.create","params":null,"id":269,"session":"3f7f06f003f0ecdd4b31d7a872b542fc"}:
 
 # RETURN:
 {"id":269,"result":2119450816,"session":"3f7f06f003f0ecdd4b31d7a872b542fc"}
@@ -49,4 +49,23 @@ http://{IP_ADDR}/RPC_Loadfile/mnt/sd/2021-04-10/001/dav/06/06.49.37-06.50.30[M][
 
 # RETURN:
 {"id":438,"result":true,"session":"7532106c0e2f38c4c005ee446f6f2f05"}
+
+# METHOD:
+{"method":"global.keepAlive","params":{"timeout":300,"active":true},"id":366,"session":"78958bf56aa9d945e51716602e7e402a"}:
+
+# RETURN:
+{"id":366,"params":{"timeout":60},"result":true,"session":"78958bf56aa9d945e51716602e7e402a"}
+
+# NTP sync
+{"method":"system.multicall","params":[{"method":"configManager.setConfig","params":{"name":"Locales","table":{"DSTEnable":false,"DSTEnd":{"Day":2,"Hour":0,"Minute":0,"Month":1,"Week":0,"Year":2021},"DSTStart":{"Day":1,"Hour":0,"Minute":0,"Month":1,"Week":0,"Year":2021},"TimeFormat":"yyyy-MM-dd
+HH:mm:ss"},"options":[]},"id":358,"session":"6beb4008fdbb72b5d75f0a8fc5676abb"},{"method":"configManager.setConfig","params":{"name":"NTP","table":{"Address":"10.15.15.4","Enable":true,"Port":123,"TimeZone":25,"TimeZoneDesc":"EasternTime(US:Canada)","UpdatePeriod":10},"options":[]},"id":359,"session":"6beb4008fdbb72b5d75f0a8fc5676abb"}],"id":360,"session":"6beb4008fdbb72b5d75f0a8fc5676abb"}:
+
+# RETURN:
+{"id":370,"params":[{"id":368,"params":{"options":null},"result":true},{"id":369,"params":{"options":null},"result":true}],"result":true,"session":"78958bf56aa9d945e51716602e7e402a"}
+
+# METHOD:
+{"method":"global.setCurrentTime","params":{"time":"2021-04-18 11:24:26","tolerance":5},"id":352,"session":"4c34a0cfffbdb1baa9c48cf5185455c3"}:
+
+# RETURN:
+{"id":352,"result":true,"session":"4c34a0cfffbdb1baa9c48cf5185455c3"}
 
