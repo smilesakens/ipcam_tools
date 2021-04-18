@@ -26,6 +26,8 @@ if __name__ == '__main__':
 
     ipcam = dahua_rpc.DahuaRpc(host=args.host, username=args.username, password=args.password)
     ipcam.login()
+    system_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    ipcam.request('global.setCurrentTime', params={'time': system_time, "tolerance": '5'})
 
     if not args.target_time:
         target_time = ipcam.current_time()
