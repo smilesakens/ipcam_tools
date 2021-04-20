@@ -1,8 +1,9 @@
 import os
-import shutil
-import subprocess
 import sys
 import time
+import shutil
+import datetime
+import subprocess
 
 
 def format_dav_range(dav_range):
@@ -80,8 +81,16 @@ def find_cam_files(cam_files_path, target_date):
             yield orig_fpath, fix_fname_format(cam_files_path, ppath, fname)
 
 
-def encode_file(cam_file_in, cam_file_out, skip_audio=None):
+def encode_file(cam_file_in, cam_file_out, skip_audio, ignore_after_date, dry_run):
+    if not datetime.datetime.fromtimestamp(os.path.getmtime(cam_file_in)) < ignore_after_date:
+        print('[!!] File ignored due to mod timestamp: {}'.format(cam_file_in))
+        return False
+
     print('[**] Encoding: {}\n\t--> {}'.format(cam_file_in, cam_file_out))
+
+    if dry_run:
+        return False
+
     success = False
     try:
         if skip_audio:
@@ -103,40 +112,46 @@ def encode_file(cam_file_in, cam_file_out, skip_audio=None):
                                      cam_file_out])
         success = True
     except Exception as err:
+        print(err)
         print('[!!] Failed encode: {}'.format(cam_file_in, err.__str__()))
         time.sleep(5)
     if success:
         os.unlink(cam_file_in)
 
 
-def move_file(cam_file, output_path):
+def move_file(cam_file, output_path, dry_run):
     print('[**] Moving: {}\n\t--> {}'.format(cam_file, output_path))
+
+    if dry_run:
+        return False
+
     try:
         shutil.move(cam_file, output_path)
     except FileNotFoundError:
         print('[!!] File not found: {}'.format(cam_file))
 
 
-def encode_dir(cam_files_path, output_path, skip_audio):
+def encode_dir(cam_files_path, output_path, skip_audio, ignore_after_date, dry_run):
     for cam_file in os.listdir(cam_files_path):
         if not cam_file.lower().endswith('.dav'):
             continue
         cam_file_in = os.path.join(cam_files_path, cam_file)
         cam_file_out = cam_file_in.replace('.dav', '.mp4')
-        encode_file(cam_file_in, cam_file_out)
+        encode_file(cam_file_in, cam_file_out, skip_audio, ignore_after_date, dry_run)
 
 
-def process_cam_ftp_dir(cam_files_path, output_path, target_date, skip_audio):
+def process_cam_ftp_dir(cam_files_path, output_path, target_date, skip_audio, ignore_after_date, dry_run):
     for orig_fpath, cam_file in find_cam_files(cam_files_path, target_date):
         if not cam_file:
             continue
         if cam_file.endswith('.jpg'):
-            move_file(cam_file, output_path)
+            jpg_path = os.path.join(output_path, cam_file)
+            move_file(orig_fpath, jpg_path, dry_run)
 
         if cam_file.endswith('dav'):
             mp4_path = '{}{}'.format(cam_file[:-4], '.mp4')
             mp4_path = os.path.join(output_path, mp4_path)
-            encode_file(orig_fpath, mp4_path, skip_audio=skip_audio)
+            encode_file(orig_fpath, mp4_path, skip_audio, ignore_after_date, dry_run)
 
 
 if __name__ == '__main__':
@@ -147,12 +162,18 @@ if __name__ == '__main__':
     parser.add_argument('-o', dest='output_path', required='true', help='Archive directory to save media files')
     parser.add_argument('-t', '--target_date', dest='target_date', help='Only process files in the directories with the specified target name (e.g., 2021-04-17)')
     parser.add_argument('-e', '--encode_dir', dest='encode_dir', action='store_true', help='Re-encode DAV to MP4, any files with archive_cam_media format (e.g., 2021-04-17_054227-054319.dav)')
+    parser.add_argument('-n', '--no_change', dest='dry_run', action='store_true', help='Print what would happen, but make no actual changes')
     parser.add_argument('--skip_audio', dest='skip_audio', action='store_true', help='Pass "-an" to ffmpeg in order to ignore the audio stream')
+    parser.add_argument('--ignore_recent', dest='ignore_recent', type=int, help='Ignore files with dates within the last x minutes')
 
     args = parser.parse_args()
 
+    ignore_after_date = None
+    if args.ignore_recent:
+        ignore_after_date = datetime.datetime.now() - datetime.timedelta(minutes=args.ignore_recent)
+
     if args.encode_dir:
-        encode_dir(args.cam_files_path, args.output_path, args.skip_audio)
+        encode_dir(args.cam_files_path, args.output_path, args.skip_audio, ignore_after_date, args.dry_run)
     else:
-        process_cam_ftp_dir(args.cam_files_path, args.output_path, args.target_date, args.skip_audio)
+        process_cam_ftp_dir(args.cam_files_path, args.output_path, args.target_date, args.skip_audio, ignore_after_date, args.dry_run)
 

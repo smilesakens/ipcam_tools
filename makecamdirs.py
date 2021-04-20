@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     for fname in os.listdir(camdir_abspath):
         # Only try to move mp4's
-        if '.mp4' not in fname:
+        if not fname.lower().endswith('.jpg') and not fname.lower().endswith('.mp4'):
             continue
 
         # Get the date out of the filename, such as 2019-03-19
